@@ -1,6 +1,5 @@
-target/
-cache/
-.git/
-.gitignore
+/target
+/cache
+.git
 *.log
 tests_sample*
