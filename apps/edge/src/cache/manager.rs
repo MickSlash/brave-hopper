@@ -21,6 +21,7 @@ pub struct CacheHit {
     pub relative_path: PathBuf,
     pub size_bytes: u64,
     pub content_type: Option<String>,
+    pub content_range: Option<String>,
 }
 
 pub struct CacheWriter {
@@ -200,6 +201,7 @@ impl CacheManager {
             relative_path: entry.relative_path,
             size_bytes: entry.size_bytes,
             content_type: entry.content_type,
+            content_range: entry.content_range,
         })
     }
 
@@ -246,10 +248,21 @@ impl CacheManager {
     }
 
     /// Commits a completed writer atomically by renaming the temporary file and adding to the index.
+    #[allow(dead_code)]
     pub async fn commit_write(
         &self,
         writer: &mut CacheWriter,
         content_type: Option<String>,
+    ) -> Result<PathBuf, std::io::Error> {
+        self.commit_write_with_range(writer, content_type, None).await
+    }
+
+    /// Commits a completed writer atomically with both content_type and optional HTTP content_range.
+    pub async fn commit_write_with_range(
+        &self,
+        writer: &mut CacheWriter,
+        content_type: Option<String>,
+        content_range: Option<String>,
     ) -> Result<PathBuf, std::io::Error> {
         writer.finish_write().await?;
 
@@ -258,11 +271,12 @@ impl CacheManager {
         writer.is_committed = true;
         let target_path = writer.target_path.clone();
 
-        let entry = CacheEntry::new(
+        let entry = CacheEntry::new_with_range(
             writer.hash.clone(),
             writer.relative_path.clone(),
             writer.bytes_written,
             content_type,
+            content_range,
         );
 
         let evicted = self.index.write().await.insert(entry);

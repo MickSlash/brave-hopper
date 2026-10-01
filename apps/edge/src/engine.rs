@@ -5,10 +5,7 @@ use axum::{
     Json,
 };
 use bytes::Bytes;
-use common::{
-    format_content_range, format_unsatisfiable_content_range, rewrite_hls_playlist, HttpRange,
-    RangeError,
-};
+use common::{format_content_range, rewrite_hls_playlist, HttpRange};
 use futures_util::Stream;
 use serde_json::json;
 use std::{
@@ -288,8 +285,12 @@ pub async fn proxy_origin_stream(
             || path_and_query.contains(".aac")
             || path_and_query.contains(".vtt"));
 
+    let client_range = client_headers
+        .get(header::RANGE)
+        .and_then(|v| v.to_str().ok());
+
     let cache_key = if is_cacheable_segment {
-        Some(CacheKey::new(stream_id, path_and_query))
+        Some(CacheKey::new_with_range(stream_id, path_and_query, client_range))
     } else {
         None
     };
@@ -492,8 +493,17 @@ pub async fn proxy_origin_stream(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-    // Only cache full 200 OK responses for cacheable segments
-    if is_cacheable_segment && status == StatusCode::OK && client_method == Method::GET {
+    let content_range = response_headers
+        .get(header::CONTENT_RANGE)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    // Cache full 200 OK responses or 206 Partial Content byte ranges for cacheable segments
+    let is_cacheable_response = is_cacheable_segment
+        && (status == StatusCode::OK || status == StatusCode::PARTIAL_CONTENT)
+        && client_method == Method::GET;
+
+    if is_cacheable_response {
         if let Some(ref key) = cache_key {
             let estimated_size = response_headers
                 .get(header::CONTENT_LENGTH)
@@ -506,6 +516,7 @@ pub async fn proxy_origin_stream(
                     let cache_mgr = state.cache.clone();
 
                     let task_content_type = content_type.clone();
+                    let task_content_range = content_range.clone();
                     // Background disk write task
                     tokio::spawn(async move {
                         let mut writer = writer;
@@ -525,9 +536,10 @@ pub async fn proxy_origin_stream(
                                     if let Some(expected) = estimated_size {
                                         if writer.bytes_written >= expected && expected > 0 {
                                             if let Err(e) = cache_mgr
-                                                .commit_write(
+                                                .commit_write_with_range(
                                                     &mut writer,
                                                     task_content_type.clone(),
+                                                    task_content_range.clone(),
                                                 )
                                                 .await
                                             {
@@ -544,8 +556,13 @@ pub async fn proxy_origin_stream(
                                 }
                                 CacheDiskMessage::Complete { content_type } => {
                                     if !committed {
-                                        if let Err(e) =
-                                            cache_mgr.commit_write(&mut writer, content_type).await
+                                        if let Err(e) = cache_mgr
+                                            .commit_write_with_range(
+                                                &mut writer,
+                                                content_type,
+                                                task_content_range.clone(),
+                                            )
+                                            .await
                                         {
                                             warn!(
                                                 error = %e,
@@ -564,7 +581,11 @@ pub async fn proxy_origin_stream(
                             if let Some(expected) = estimated_size {
                                 if writer.bytes_written >= expected && expected > 0 {
                                     let _ = cache_mgr
-                                        .commit_write(&mut writer, task_content_type)
+                                        .commit_write_with_range(
+                                            &mut writer,
+                                            task_content_type,
+                                            task_content_range,
+                                        )
                                         .await;
                                     committed = true;
                                 }
@@ -692,12 +713,14 @@ async fn serve_cache_hit(
     );
     response_headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
 
-    // Check Range header
-    let range_header = client_headers
-        .get(header::RANGE)
-        .and_then(|v| v.to_str().ok());
-
-    let (status, start_offset, stream_len) = if let Some(range_raw) = range_header {
+    // Check Range header and cached content_range
+    let (status, start_offset, stream_len) = if let Some(ref cr) = hit.content_range {
+        // Direct cached 206 byte-range chunk!
+        if let Ok(hv) = HeaderValue::from_str(cr) {
+            response_headers.insert(header::CONTENT_RANGE, hv);
+        }
+        (StatusCode::PARTIAL_CONTENT, 0, total_size)
+    } else if let Some(range_raw) = client_headers.get(header::RANGE).and_then(|v| v.to_str().ok()) {
         match HttpRange::parse(range_raw) {
             Ok(spec) => match spec.resolve(total_size) {
                 Ok((start, end)) => {
@@ -708,16 +731,14 @@ async fn serve_cache_hit(
                     let length = end - start + 1;
                     (StatusCode::PARTIAL_CONTENT, start, length)
                 }
-                Err(RangeError::Unsatisfiable { total_len }) => {
-                    let content_range = format_unsatisfiable_content_range(total_len);
+                Err(_) => {
+                    // Fallback for direct chunk match: entire file is the requested chunk
+                    let content_range = format!("bytes {}/*", range_raw.trim_start_matches("bytes="));
                     if let Ok(hv) = HeaderValue::from_str(&content_range) {
                         response_headers.insert(header::CONTENT_RANGE, hv);
                     }
-                    state.metrics.inc_cache_hit();
-                    state.metrics.inc_requests();
-                    return (StatusCode::RANGE_NOT_SATISFIABLE, response_headers).into_response();
+                    (StatusCode::PARTIAL_CONTENT, 0, total_size)
                 }
-                Err(_) => (StatusCode::OK, 0, total_size),
             },
             Err(_) => (StatusCode::OK, 0, total_size),
         }

@@ -14,7 +14,15 @@ impl CacheKey {
     /// Generates a deterministic CacheKey from stream_id and path_and_query.
     /// Filters out dynamic authentication and session tokens (token, expires, sig, etc.)
     /// while preserving parameters that alter content (e.g. size_mb, quality).
+    #[allow(dead_code)]
     pub fn new(stream_id: &str, path_and_query: &str) -> Self {
+        Self::new_with_range(stream_id, path_and_query, None)
+    }
+
+    /// Generates a deterministic CacheKey from stream_id, path_and_query, and optional byte range.
+    /// Incorporates the HTTP Range header (e.g. bytes=100-200) so that 206 Partial Content
+    /// byte ranges are safely cached as discrete chunks without collision.
+    pub fn new_with_range(stream_id: &str, path_and_query: &str, range: Option<&str>) -> Self {
         let (raw_path, raw_query) = match path_and_query.split_once('?') {
             Some((p, q)) => (p, q),
             None => (path_and_query, ""),
@@ -37,6 +45,10 @@ impl CacheKey {
         if !clean_query.is_empty() {
             hasher.update(b"?");
             hasher.update(clean_query.as_bytes());
+        }
+        if let Some(r) = range {
+            hasher.update(b"#range=");
+            hasher.update(r.trim().as_bytes());
         }
 
         let hash = hex::encode(hasher.finalize());

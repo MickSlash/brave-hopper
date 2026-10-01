@@ -96,6 +96,10 @@ pub async fn run_edge_heartbeat_loop(state: EdgeState) {
         reg_response.heartbeat_interval_secs.max(5),
     ));
 
+    let mut last_bytes_out = 0u64;
+    let mut last_bytes_in = 0u64;
+    let mut last_tick = tokio::time::Instant::now();
+
     loop {
         interval.tick().await;
 
@@ -115,6 +119,25 @@ pub async fn run_edge_heartbeat_loop(state: EdgeState) {
         let (cpu, mem_used, mem_total, _) = sampler.sample();
         let metrics_snap = state.metrics.snapshot();
 
+        let now = tokio::time::Instant::now();
+        let elapsed = now.duration_since(last_tick).as_secs_f64().max(0.1);
+        let delta_bytes_out = metrics_snap.bytes_out.saturating_sub(last_bytes_out);
+        let delta_bytes_in = metrics_snap.bytes_in.saturating_sub(last_bytes_in);
+        let bandwidth_out_bps = ((delta_bytes_out as f64 * 8.0) / elapsed) as u64;
+        let bandwidth_in_bps = ((delta_bytes_in as f64 * 8.0) / elapsed) as u64;
+        last_bytes_out = metrics_snap.bytes_out;
+        last_bytes_in = metrics_snap.bytes_in;
+        last_tick = now;
+
+        // In HLS chunked streaming, requests take ~50ms. If data was transferred
+        // in the heartbeat interval, report active streaming.
+        let reported_active_streams = metrics_snap
+            .active_streams
+            .max(if delta_bytes_out > 0 { 1 } else { 0 });
+        let reported_active_conns = metrics_snap
+            .active_connections
+            .max(if delta_bytes_out > 0 { 1 } else { 0 });
+
         let payload = HeartbeatPayload {
             timestamp: Utc::now().timestamp(),
             uptime_secs: state.uptime_secs(),
@@ -122,10 +145,10 @@ pub async fn run_edge_heartbeat_loop(state: EdgeState) {
             cpu_percent: cpu,
             memory_used_mb: mem_used,
             memory_total_mb: mem_total,
-            active_connections: metrics_snap.active_connections,
-            active_streams: metrics_snap.active_streams,
-            bandwidth_in_bps: 0, // Computed dynamically in Milestone 10
-            bandwidth_out_bps: 0,
+            active_connections: reported_active_conns,
+            active_streams: reported_active_streams,
+            bandwidth_in_bps,
+            bandwidth_out_bps,
             cache_used_mb: state.cache.used_bytes() / (1024 * 1024),
             cache_capacity_mb: state.config.cache.max_size_gb * 1024,
             cache_hit_ratio: metrics_snap.cache_hit_ratio,

@@ -11,6 +11,7 @@ pub struct CacheEntry {
     pub relative_path: PathBuf,
     pub size_bytes: u64,
     pub content_type: Option<String>,
+    pub content_range: Option<String>,
     pub created_at: Instant,
     pub last_accessed: Instant,
     pub access_seq: u64,
@@ -23,12 +24,23 @@ impl CacheEntry {
         size_bytes: u64,
         content_type: Option<String>,
     ) -> Self {
+        Self::new_with_range(hash, relative_path, size_bytes, content_type, None)
+    }
+
+    pub fn new_with_range(
+        hash: String,
+        relative_path: PathBuf,
+        size_bytes: u64,
+        content_type: Option<String>,
+        content_range: Option<String>,
+    ) -> Self {
         let now = Instant::now();
         Self {
             hash,
             relative_path,
             size_bytes,
             content_type,
+            content_range,
             created_at: now,
             last_accessed: now,
             access_seq: 0,
