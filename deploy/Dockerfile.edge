@@ -1,6 +1,11 @@
 # Multi-stage Dockerfile for Stream Edge Node
 FROM rust:1.82-bookworm AS builder
 WORKDIR /app
+
+# Prevent out-of-memory (OOM) on 1GB/2GB RAM VPS instances
+ENV CARGO_PROFILE_RELEASE_LTO=false
+ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+
 COPY . .
 RUN cargo build --release --bin stream-edge
 

@@ -1,0 +1,6 @@
+target/
+cache/
+.git/
+.gitignore
+*.log
+tests_sample*
