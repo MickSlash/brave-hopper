@@ -1,0 +1,36 @@
+<div id="cluster-cards" class="grid" hx-get="/dashboard/cards" hx-trigger="every 3s" hx-swap="outerHTML">
+    <div class="card">
+        <div class="title">Active Nodes</div>
+        <div class="value">{{ snapshot.nodes_online }} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">/ {{ snapshot.nodes_total }}</span></div>
+        <div class="sub">
+            {% if snapshot.nodes_degraded > 0 %}<span style="color: var(--accent-yellow);">{{ snapshot.nodes_degraded }} Degraded</span>{% endif %}
+            {% if snapshot.nodes_offline > 0 %}<span style="color: var(--accent-red);">{{ snapshot.nodes_offline }} Offline</span>{% endif %}
+            {% if snapshot.nodes_degraded == 0 && snapshot.nodes_offline == 0 %}100% Healthy{% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="title">Cluster Outbound Traffic</div>
+        <div class="value">{{ snapshot.bandwidth_out_mbps }} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">Mbps</span></div>
+        <div class="sub">Inbound Origin: {{ snapshot.bandwidth_in_mbps }} Mbps</div>
+    </div>
+    <div class="card">
+        <div class="title">Active Client Streams</div>
+        <div class="value">{{ snapshot.active_streams }}</div>
+        <div class="sub">TCP Connections: {{ snapshot.active_connections }}</div>
+    </div>
+    <div class="card">
+        <div class="title">Cluster Cache Hit Ratio</div>
+        <div class="value">{{ snapshot.cache_hit_ratio }}%</div>
+        <div class="sub">Storage: {{ snapshot.cache_used_mb }} MB / {{ snapshot.cache_capacity_mb }} MB</div>
+    </div>
+    <div class="card">
+        <div class="title">Avg Node CPU & RAM</div>
+        <div class="value">{{ snapshot.average_cpu_pct }}% <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">CPU</span></div>
+        <div class="sub">RAM Utilization: {{ snapshot.average_ram_pct }}%</div>
+    </div>
+    <div class="card">
+        <div class="title">Origin Offload & Health</div>
+        <div class="value">{{ snapshot.origin_requests_total }} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">reqs</span></div>
+        <div class="sub">Error Rate: {{ snapshot.origin_error_rate_pct }}% ({{ snapshot.origin_errors_total }} errors)</div>
+    </div>
+</div>

@@ -1,0 +1,13 @@
+/var/log/stream-cdn/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 streamcdn streamcdn
+    sharedscripts
+    postrotate
+        systemctl kill -s HUP stream-edge.service stream-control.service 2>/dev/null || true
+    endscript
+}

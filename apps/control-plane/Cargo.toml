@@ -1,0 +1,32 @@
+[package]
+name = "stream-control"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "stream-control"
+path = "src/main.rs"
+
+[dependencies]
+tokio.workspace = true
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+tracing.workspace = true
+clap.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+hex.workspace = true
+askama.workspace = true
+futures-util.workspace = true
+
+# Internal Crates
+common.workspace = true
+protocol.workspace = true
+auth.workspace = true
+metrics.workspace = true

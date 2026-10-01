@@ -1,0 +1,35 @@
+[Unit]
+Description=Stream CDN Protected Origin Server (Staging/Mock)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=streamcdn
+Group=streamcdn
+WorkingDirectory=/var/lib/stream-origin
+EnvironmentFile=-/etc/stream-cdn/origin.env
+ExecStart=/usr/local/bin/stream-origin --bind ${ORIGIN_BIND:-127.0.0.1:9000} --secret ${ORIGIN_AUTH_SECRET}
+Restart=always
+RestartSec=5s
+
+# Security sandboxing
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+LimitNOFILE=65535
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=stream-origin
+
+[Install]
+WantedBy=multi-user.target

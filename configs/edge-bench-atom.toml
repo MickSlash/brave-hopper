@@ -1,0 +1,29 @@
+# Stream Edge Benchmarking Configuration (Atom 230 / Low Resource: 1 Tokio worker thread)
+[edge]
+name = "edge-bench-atom"
+listen_addr = "127.0.0.1:8082"
+token = "dev-edge-cluster-provisioning-token"
+low_resource_mode = true
+
+[control]
+url = "http://127.0.0.1:8080"
+heartbeat_interval_secs = 15
+
+[cache]
+path = "./cache/edge-bench-atom"
+max_size_gb = 10
+ttl_secs = 86400
+
+[limits]
+max_connections = 10000
+max_streams = 5000
+max_bandwidth_mbps = 10000
+
+[origin]
+url = "http://127.0.0.1:9000"
+auth_secret = "dev-origin-hmac-shared-secret"
+
+[rate_limit]
+enabled = false
+requests_per_second = 100000.0
+burst_capacity = 100000.0

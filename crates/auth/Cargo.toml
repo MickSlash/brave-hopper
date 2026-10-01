@@ -1,0 +1,12 @@
+[package]
+name = "auth"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hmac.workspace = true
+sha2.workspace = true
+hex.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+protocol.workspace = true

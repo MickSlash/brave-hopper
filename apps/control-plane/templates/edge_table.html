@@ -1,0 +1,71 @@
+<div id="edge-table-container" class="table-container" hx-get="/dashboard/edges" hx-trigger="every 3s" hx-swap="outerHTML">
+    <table>
+        <thead>
+            <tr>
+                <th>Edge Node</th>
+                <th>Status</th>
+                <th>Endpoint</th>
+                <th>Weight</th>
+                <th>CPU %</th>
+                <th>RAM</th>
+                <th>Streams</th>
+                <th>Conn</th>
+                <th>Traffic Out</th>
+                <th>Cache (Hit %)</th>
+                <th>Origin Latency</th>
+                <th>Errors</th>
+                <th>Version</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for edge in edges %}
+            <tr>
+                <td><strong>{{ edge.name }}</strong></td>
+                <td>
+                    {% if edge.status == "ONLINE" %}
+                        <span class="badge badge-online">Online</span>
+                    {% else if edge.status == "DEGRADED" %}
+                        <span class="badge badge-degraded">Degraded</span>
+                    {% else if edge.status == "DRAINING" %}
+                        <span class="badge badge-draining">Draining</span>
+                    {% else %}
+                        <span class="badge badge-offline">Offline</span>
+                    {% endif %}
+                </td>
+                <td><code>{{ edge.hostname }}:{{ edge.public_port }}</code></td>
+                <td>{{ edge.weight }}</td>
+                <td>{{ edge.cpu_pct }}%</td>
+                <td>{{ edge.ram_formatted }}</td>
+                <td><strong>{{ edge.active_streams }}</strong></td>
+                <td>{{ edge.active_connections }}</td>
+                <td>{{ edge.bandwidth_out_mbps }} Mbps</td>
+                <td>{{ edge.cache_formatted }}</td>
+                <td>{{ edge.origin_latency_ms }} ms</td>
+                <td>
+                    {% if edge.origin_errors > 0 %}
+                        <span style="color: var(--accent-red); font-weight: bold;">{{ edge.origin_errors }}</span>
+                    {% else %}
+                        0
+                    {% endif %}
+                </td>
+                <td>{{ edge.version }}</td>
+                <td>
+                    {% if edge.status == "DRAINING" %}
+                        <button hx-post="/api/v1/edges/{{ edge.name }}/undrain" hx-swap="none" style="padding: 4px 8px; border-radius: 4px; background: #238636; color: #fff; border: none; cursor: pointer; font-size: 11px; font-weight: 600;">Undrain</button>
+                    {% else %}
+                        <button hx-post="/api/v1/edges/{{ edge.name }}/drain" hx-swap="none" style="padding: 4px 8px; border-radius: 4px; background: #da3633; color: #fff; border: none; cursor: pointer; font-size: 11px; font-weight: 600;">Drain</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            {% if edges.is_empty() %}
+            <tr>
+                <td colspan="14" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                    No edge nodes registered yet. Start an edge node with <code>stream-edge --control http://127.0.0.1:8080</code>
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

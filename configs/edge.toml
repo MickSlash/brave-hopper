@@ -1,0 +1,29 @@
+# Stream Edge Node 01 Configuration
+[edge]
+name = "edge-de-01"
+listen_addr = "127.0.0.1:8081"
+token = "dev-edge-cluster-provisioning-token"
+low_resource_mode = false
+
+[control]
+url = "http://127.0.0.1:8080"
+heartbeat_interval_secs = 15
+
+[cache]
+path = "./cache/edge-de-01"
+max_size_gb = 50
+ttl_secs = 86400
+
+[limits]
+max_connections = 5000
+max_streams = 500
+max_bandwidth_mbps = 1000
+
+[origin]
+url = "http://127.0.0.1:9000"
+auth_secret = "dev-origin-hmac-shared-secret"
+
+[rate_limit]
+enabled = true
+requests_per_second = 50.0
+burst_capacity = 100.0

@@ -1,0 +1,29 @@
+# Stream Edge Node Production Configuration
+[edge]
+name = "edge-prod-eu-01"
+listen_addr = "0.0.0.0:8081"
+token = "REPLACE_WITH_SECURE_EDGE_CLUSTER_TOKEN"
+low_resource_mode = false # Set true for single-core or Atom/embedded nodes
+
+[control]
+url = "https://control.internal.streaming.net"
+heartbeat_interval_secs = 10
+
+[cache]
+path = "/var/cache/stream-edge"
+max_size_gb = 100
+ttl_secs = 604800 # 7 days
+
+[limits]
+max_connections = 10000
+max_streams = 2000
+max_bandwidth_mbps = 1000
+
+[origin]
+url = "https://origin.internal.streaming.net"
+auth_secret = "REPLACE_WITH_ORIGIN_HMAC_SHARED_SECRET"
+
+[rate_limit]
+enabled = true
+requests_per_second = 100.0
+burst_capacity = 200.0

@@ -1,0 +1,16 @@
+# Multi-stage Dockerfile for Stream Edge Node
+FROM rust:1.82-bookworm AS builder
+WORKDIR /app
+COPY . .
+RUN cargo build --release --bin stream-edge
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
+RUN groupadd -g 1000 streamcdn && useradd -u 1000 -g streamcdn -s /bin/false -m streamcdn
+RUN mkdir -p /var/cache/stream-edge /etc/stream-cdn && chown -R streamcdn:streamcdn /var/cache/stream-edge /etc/stream-cdn
+COPY --from=builder /app/target/release/stream-edge /usr/local/bin/stream-edge
+COPY configs/edge.toml /etc/stream-cdn/edge.toml
+USER streamcdn
+EXPOSE 8081
+VOLUME ["/var/cache/stream-edge"]
+ENTRYPOINT ["/usr/local/bin/stream-edge", "--config", "/etc/stream-cdn/edge.toml"]

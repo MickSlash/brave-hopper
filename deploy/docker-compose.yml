@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  origin:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.edge
+      args:
+        BINARY: stream-origin
+    image: stream-origin:latest
+    command: ["/usr/local/bin/stream-origin", "--bind", "0.0.0.0:9000", "--secret", "dev-origin-hmac-shared-secret"]
+    ports:
+      - "9000:9000"
+    networks:
+      - cdn-net
+
+  control:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.control
+    image: stream-control:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+    depends_on:
+      - origin
+    networks:
+      - cdn-net
+
+  edge-01:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.edge
+    image: stream-edge:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - RUST_LOG=info
+    depends_on:
+      - control
+      - origin
+    networks:
+      - cdn-net
+
+networks:
+  cdn-net:
+    driver: bridge

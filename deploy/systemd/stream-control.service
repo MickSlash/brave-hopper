@@ -1,0 +1,40 @@
+[Unit]
+Description=Stream CDN Control Plane Orchestrator
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=streamcdn
+Group=streamcdn
+WorkingDirectory=/var/lib/stream-control
+ExecStart=/usr/local/bin/stream-control --config /etc/stream-cdn/control.toml
+Restart=always
+RestartSec=5s
+
+# Security sandboxing
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+# Resource boundaries
+LimitNOFILE=65535
+MemoryMax=512M
+
+# Filesystem permissions
+ReadWritePaths=/var/log/stream-cdn
+
+# Standard logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=stream-control
+
+[Install]
+WantedBy=multi-user.target

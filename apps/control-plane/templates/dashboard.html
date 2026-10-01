@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream CDN - Control Plane Dashboard</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+        :root {
+            --bg-base: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-base); color: var(--text-main); padding: 24px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .header h1 { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .header .meta { font-size: 13px; color: var(--text-muted); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+        .card .title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+        .card .value { font-size: 26px; font-weight: 700; color: var(--text-main); }
+        .card .sub { font-size: 12px; color: var(--accent); margin-top: 4px; }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .table-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: #162032; padding: 12px 14px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: var(--bg-card-hover); }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .badge-online { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .badge-degraded { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+        .badge-offline { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .badge-draining { background: rgba(56, 189, 248, 0.2); color: var(--accent); }
+        .quick-play { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+        .quick-play input { background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; width: 300px; }
+        .quick-play button { background: var(--accent); color: #0f172a; border: none; padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; }
+        .quick-play button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Antigravity CDN Control Plane</h1>
+            <div class="meta">Cluster Status & Distributed Telemetry</div>
+        </div>
+        <div class="meta">
+            Server Uptime: <strong>{{ uptime_formatted }}</strong> | Version: <strong>{{ version }}</strong>
+        </div>
+    </div>
+
+    <!-- Cluster Overview Cards (Auto-refreshed via HTMX every 3s) -->
+    <div id="cluster-cards" hx-get="/dashboard/cards" hx-trigger="every 3s" hx-swap="outerHTML">
+        {% include "cards.html" %}
+    </div>
+
+    <div class="section-title">
+        <span>Active Edge Fleet</span>
+        <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">Live HTMX Polling (3s)</span>
+    </div>
+
+    <!-- Edge Fleet Table (Auto-refreshed via HTMX every 3s) -->
+    <div id="edge-table-container" hx-get="/dashboard/edges" hx-trigger="every 3s" hx-swap="outerHTML">
+        {% include "edge_table.html" %}
+    </div>
+
+    <!-- Quick Playback URL Generator -->
+    <div class="quick-play">
+        <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--accent);">Stream Player Test Link</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Request an auto-routed and HMAC-signed stream redirection for any registered stream ID:</p>
+        <form action="/api/v1/streams/play" method="GET" target="_blank" style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" name="stream_id" value="hls-demo" placeholder="Stream ID" required>
+            <input type="hidden" name="redirect" value="true">
+            <button type="submit">Play via Optimal Edge</button>
+        </form>
+    </div>
+</body>
+</html>

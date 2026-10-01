@@ -1,0 +1,8 @@
+# Stream Control Plane Production Configuration
+listen_addr = "0.0.0.0:8080"
+admin_secret = "REPLACE_WITH_STRONG_RANDOM_ADMIN_SECRET"
+edge_provisioning_token = "REPLACE_WITH_SECURE_EDGE_CLUSTER_TOKEN"
+client_signing_secret = "REPLACE_WITH_CLIENT_HMAC_SIGNING_KEY"
+origin_url = "https://origin.internal.streaming.net"
+origin_auth_secret = "REPLACE_WITH_ORIGIN_HMAC_SHARED_SECRET"
+heartbeat_timeout_secs = 30

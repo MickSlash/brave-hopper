@@ -1,0 +1,42 @@
+[Unit]
+Description=Stream CDN Lean Edge Node
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=streamcdn
+Group=streamcdn
+WorkingDirectory=/var/cache/stream-edge
+ExecStart=/usr/local/bin/stream-edge --config /etc/stream-cdn/edge.toml
+Restart=always
+RestartSec=3s
+
+# Security sandboxing
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+# Strict Low-Resource Constraints (1 vCPU, 512MB RAM)
+LimitNOFILE=65535
+CPUQuota=100%
+MemoryMax=512M
+MemoryHigh=480M
+
+# Filesystem permissions
+ReadWritePaths=/var/cache/stream-edge /var/log/stream-cdn
+
+# Standard logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=stream-edge
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,69 @@
+[workspace]
+resolver = "2"
+members = [
+    "apps/control-plane",
+    "apps/edge",
+    "apps/origin-mock",
+    "crates/common",
+    "crates/protocol",
+    "crates/metrics",
+    "crates/auth",
+    "tools/benchmark",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Senior Rust Backend Engineer"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Async Runtime & Networking
+tokio = { version = "1.43", features = ["full"] }
+axum = { version = "0.8", features = ["tokio", "http1", "http2", "macros"] }
+tower = { version = "0.5" }
+tower-http = { version = "0.6", features = ["trace", "cors", "timeout"] }
+hyper = { version = "1.5", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+bytes = "1.10"
+futures-util = "0.3"
+
+# Serialization & Config
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# CLI & Utilities
+clap = { version = "4.5", features = ["derive", "env"] }
+uuid = { version = "1.15", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+askama = "0.12"
+
+# Cryptography & Security
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+subtle = "2.6"
+thiserror = "2.0"
+
+# HTTP Client & System Telemetry
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+sysinfo = { version = "0.33", default-features = false, features = ["system"] }
+
+# Internal Workspace Crates
+common = { path = "crates/common" }
+protocol = { path = "crates/protocol" }
+metrics = { path = "crates/metrics" }
+auth = { path = "crates/auth" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

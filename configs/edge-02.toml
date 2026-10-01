@@ -1,0 +1,29 @@
+# Stream Edge Node 02 Configuration (Low-resource example)
+[edge]
+name = "edge-it-02"
+listen_addr = "127.0.0.1:8082"
+token = "dev-edge-cluster-provisioning-token"
+low_resource_mode = true
+
+[control]
+url = "http://127.0.0.1:8080"
+heartbeat_interval_secs = 15
+
+[cache]
+path = "./cache/edge-it-02"
+max_size_gb = 20
+ttl_secs = 86400
+
+[limits]
+max_connections = 500
+max_streams = 50
+max_bandwidth_mbps = 100
+
+[origin]
+url = "http://127.0.0.1:9000"
+auth_secret = "dev-origin-hmac-shared-secret"
+
+[rate_limit]
+enabled = true
+requests_per_second = 20.0
+burst_capacity = 50.0

@@ -1,0 +1,9 @@
+# Stream Control Plane Configuration
+listen_addr = "127.0.0.1:8080"
+admin_secret = "dev-admin-secret-key-change-in-production"
+edge_provisioning_token = "dev-edge-cluster-provisioning-token"
+client_signing_secret = "dev-client-hmac-secret-key"
+origin_url = "http://127.0.0.1:9000"
+origin_auth_secret = "dev-origin-hmac-shared-secret"
+heartbeat_timeout_secs = 30
+# database_url = "postgres://postgres:postgres@localhost:5432/stream_cdn"

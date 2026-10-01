@@ -1,0 +1,19 @@
+[package]
+name = "stream-bench"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "stream-bench"
+path = "src/main.rs"
+
+[dependencies]
+tokio.workspace = true
+reqwest.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+futures-util.workspace = true

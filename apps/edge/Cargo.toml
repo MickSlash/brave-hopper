@@ -1,0 +1,34 @@
+[package]
+name = "stream-edge"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "stream-edge"
+path = "src/main.rs"
+
+[dependencies]
+tokio.workspace = true
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+bytes.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+tracing.workspace = true
+clap.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
+sysinfo.workspace = true
+futures-util.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+hex.workspace = true
+
+# Internal Crates
+common.workspace = true
+protocol.workspace = true
+auth.workspace = true
+metrics.workspace = true

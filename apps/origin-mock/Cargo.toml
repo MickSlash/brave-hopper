@@ -1,0 +1,25 @@
+[package]
+name = "stream-origin"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "stream-origin"
+path = "src/main.rs"
+
+[dependencies]
+tokio.workspace = true
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+bytes.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+clap.workspace = true
+chrono.workspace = true
+futures-util.workspace = true
+
+# Internal Crates
+common.workspace = true
+auth.workspace = true
