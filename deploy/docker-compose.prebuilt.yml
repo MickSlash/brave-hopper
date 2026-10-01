@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: stream-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - control
+      - edge
+    networks:
+      - cdn-internal
+
+  control:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.control.prebuilt
+    image: stream-control:latest
+    container_name: stream-control
+    restart: always
+    volumes:
+      - ./configs/control.prod.toml:/etc/stream-cdn/control.toml:ro
+    environment:
+      - RUST_LOG=info
+    networks:
+      - cdn-internal
+
+  edge:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.edge.prebuilt
+    image: stream-edge:latest
+    container_name: stream-edge
+    restart: always
+    volumes:
+      - ./configs/edge.prod.toml:/etc/stream-cdn/edge.toml:ro
+      - stream-edge-cache:/var/cache/stream-edge
+    environment:
+      - RUST_LOG=info
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    depends_on:
+      - control
+    networks:
+      - cdn-internal
+
+volumes:
+  stream-edge-cache:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local
+
+networks:
+  cdn-internal:
+    driver: bridge
