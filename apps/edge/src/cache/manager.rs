@@ -145,6 +145,9 @@ impl CacheManager {
                         stale_temps += 1;
                         continue;
                     }
+                    if filename.ends_with(".meta") {
+                        continue;
+                    }
 
                     // Process cache media chunks
                     if let Ok(metadata) = entry.metadata().await {
@@ -156,17 +159,26 @@ impl CacheManager {
                                 .unwrap_or(filename)
                                 .to_string();
 
-                            let content_type = detect_content_type_from_path(&path);
+                            let meta_path = path.with_extension("meta");
+                            let (content_type, content_range) = if let Ok(meta_str) = fs::read_to_string(&meta_path).await {
+                                let mut lines = meta_str.lines();
+                                let ct = lines.next().filter(|s| !s.is_empty()).map(|s| s.to_string());
+                                let cr = lines.next().filter(|s| !s.is_empty()).map(|s| s.to_string());
+                                (ct.or_else(|| detect_content_type_from_path(&path)), cr)
+                            } else {
+                                (detect_content_type_from_path(&path), None)
+                            };
 
                             let cache_entry =
-                                CacheEntry::new(hash, rel_path.to_path_buf(), size, content_type);
+                                CacheEntry::new_with_range(hash, rel_path.to_path_buf(), size, content_type, content_range);
 
                             let evicted = self.index.write().await.insert(cache_entry);
 
                             // Delete any immediately evicted files if cache was already over-capacity
                             for ev in evicted {
                                 let ev_path = self.root_dir.join(&ev.relative_path);
-                                let _ = fs::remove_file(ev_path).await;
+                                let _ = fs::remove_file(&ev_path).await;
+                                let _ = fs::remove_file(ev_path.with_extension("meta")).await;
                             }
 
                             scanned_entries += 1;
@@ -275,9 +287,18 @@ impl CacheManager {
             writer.hash.clone(),
             writer.relative_path.clone(),
             writer.bytes_written,
-            content_type,
-            content_range,
+            content_type.clone(),
+            content_range.clone(),
         );
+
+        // Persist metadata sidecar file for persistence across restarts
+        let meta_path = target_path.with_extension("meta");
+        let meta_content = format!(
+            "{}\n{}",
+            content_type.as_deref().unwrap_or(""),
+            content_range.as_deref().unwrap_or("")
+        );
+        let _ = fs::write(&meta_path, meta_content).await;
 
         let evicted = self.index.write().await.insert(entry);
         self.total_bytes
@@ -304,6 +325,8 @@ impl CacheManager {
 
         for entry in evicted {
             let file_path = self.root_dir.join(&entry.relative_path);
+            let meta_path = file_path.with_extension("meta");
+            let _ = fs::remove_file(&meta_path).await;
             if let Err(e) = fs::remove_file(&file_path).await {
                 warn!(path = ?file_path, error = %e, "Failed to remove evicted cache file");
             } else {

@@ -18,6 +18,7 @@ pub struct CacheEntry {
 }
 
 impl CacheEntry {
+    #[allow(dead_code)]
     pub fn new(
         hash: String,
         relative_path: PathBuf,

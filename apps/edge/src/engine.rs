@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 use bytes::Bytes;
-use common::{format_content_range, rewrite_hls_playlist, HttpRange};
+use common::rewrite_hls_playlist;
 use futures_util::Stream;
 use serde_json::json;
 use std::{
@@ -721,27 +721,22 @@ async fn serve_cache_hit(
         }
         (StatusCode::PARTIAL_CONTENT, 0, total_size)
     } else if let Some(range_raw) = client_headers.get(header::RANGE).and_then(|v| v.to_str().ok()) {
-        match HttpRange::parse(range_raw) {
-            Ok(spec) => match spec.resolve(total_size) {
-                Ok((start, end)) => {
-                    let content_range = format_content_range(start, end, total_size);
-                    if let Ok(hv) = HeaderValue::from_str(&content_range) {
-                        response_headers.insert(header::CONTENT_RANGE, hv);
-                    }
-                    let length = end - start + 1;
-                    (StatusCode::PARTIAL_CONTENT, start, length)
-                }
-                Err(_) => {
-                    // Fallback for direct chunk match: entire file is the requested chunk
-                    let content_range = format!("bytes {}/*", range_raw.trim_start_matches("bytes="));
-                    if let Ok(hv) = HeaderValue::from_str(&content_range) {
-                        response_headers.insert(header::CONTENT_RANGE, hv);
-                    }
-                    (StatusCode::PARTIAL_CONTENT, 0, total_size)
-                }
-            },
-            Err(_) => (StatusCode::OK, 0, total_size),
+        // Cached byte-range chunk without stored header:
+        // The cached chunk file ALREADY starts at byte 0 of this range, so start_offset is 0.
+        let range_spec = range_raw.trim().trim_start_matches("bytes=").trim();
+        let content_range = if let Some((start_s, _end_s)) = range_spec.split_once('-') {
+            if let Ok(start) = start_s.parse::<u64>() {
+                format!("bytes {}-{}/{}", start, start + total_size.saturating_sub(1), "*")
+            } else {
+                format!("bytes {}/*", range_spec)
+            }
+        } else {
+            format!("bytes {}/*", range_spec)
+        };
+        if let Ok(hv) = HeaderValue::from_str(&content_range) {
+            response_headers.insert(header::CONTENT_RANGE, hv);
         }
+        (StatusCode::PARTIAL_CONTENT, 0, total_size)
     } else {
         (StatusCode::OK, 0, total_size)
     };
