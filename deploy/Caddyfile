@@ -1,0 +1,24 @@
+# ==============================================================
+# Caddyfile per Stream CDN (SSL Automatico Let's Encrypt)
+# Sostituisci i domini con i tuoi record DNS reali
+# ==============================================================
+
+control.tuodominio.com {
+    # Reverse proxy verso il Control Plane & Dashboard
+    reverse_proxy control:8080 {
+        # Supporto per Server-Sent Events (SSE) senza buffering
+        flush_interval -1
+    }
+}
+
+cdn.tuodominio.com {
+    # Reverse proxy verso il nodo Edge (Streaming video HLS)
+    reverse_proxy edge:8081
+
+    # Header CORS per consentire ai player video web di riprodurre gli stream
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        Access-Control-Allow-Headers "*"
+    }
+}

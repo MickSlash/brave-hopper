@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  control:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.control
+    image: stream-control:latest
+    container_name: stream-control
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./configs/control.prod.toml:/etc/stream-cdn/control.toml:ro
+    environment:
+      - RUST_LOG=info
+    networks:
+      - cdn-internal
+
+  edge:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.edge
+    image: stream-edge:latest
+    container_name: stream-edge
+    restart: always
+    ports:
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - ./configs/edge.prod.toml:/etc/stream-cdn/edge.toml:ro
+      - stream-edge-cache:/var/cache/stream-edge
+    environment:
+      - RUST_LOG=info
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    depends_on:
+      - control
+    networks:
+      - cdn-internal
+
+volumes:
+  stream-edge-cache:
+    driver: local
+
+networks:
+  cdn-internal:
+    driver: bridge
